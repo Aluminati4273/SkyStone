@@ -46,6 +46,19 @@ public class JenksTron_TeleOp extends OpMode {
 
         //************************* DRIVING THE ROBOT *************************************
 
+        if(gamepad1.dpad_right){
+            robot.driveOrient = 1;
+        }
+        else if(gamepad1.dpad_down){
+            robot.driveOrient = 2;
+        }
+        else if(gamepad1.dpad_left) {
+            robot.driveOrient = 3;
+        }
+        else {
+            robot.driveOrient = 0;
+        }
+
         // left stick to move forward and backward
         if(Math.abs(gamepad1.left_stick_y) > THRESHOLD) {
             robot.driveForwardBackward(gamepad1.left_stick_y);

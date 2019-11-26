@@ -27,8 +27,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -38,6 +42,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * This class can be used to define all the specific hardware for a single robot.
  */
+
 public class HardwareJenksTron3000
 {
     /* Public OpMode members. */
@@ -48,15 +53,21 @@ public class HardwareJenksTron3000
     public Servo    foundation1  = null;
     public Servo    foundation2 = null;
 
-    public static final double FOUNDATION1_START =  0.5 ;
-    public static final double FOUNDATION1_GRAB  =  0.45 ;
+    public static final double FOUNDATION1_START =  0.95;
+    public static final double FOUNDATION1_GRAB  =  0.20;
 
-    public static final double FOUNDATION2_START =  0.45 ;
-    public static final double FOUNDATION2_GRAB  =  0.5 ;
+    public static final double FOUNDATION2_START =  0.20;
+    public static final double FOUNDATION2_GRAB  =  0.95;
+
+    public static int driveOrient = 0;
 
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
     private ElapsedTime period  = new ElapsedTime();
+
+
+    // sensors
+    //ModernRoboticsI2cRangeSensor rangeSensor;
 
     /* Constructor */
     public HardwareJenksTron3000(){
@@ -67,6 +78,9 @@ public class HardwareJenksTron3000
     public void init(HardwareMap ahwMap) {
         // Save reference to Hardware map
         hwMap = ahwMap;
+
+        //sensor initialization
+        //rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "range_sensor");
 
         // Define and Initialize Motors
         leftDrive   = hwMap.get(DcMotor.class, "left_drive");
@@ -97,34 +111,81 @@ public class HardwareJenksTron3000
         foundation1  = hwMap.get(Servo.class, "foundation1");
         foundation1.setPosition(FOUNDATION1_START);
         foundation2  = hwMap.get(Servo.class, "foundation2");
-        foundation1.setPosition(FOUNDATION2_START);
-
-
-
-
+        foundation2.setPosition(FOUNDATION2_START);
     }
-    //drive forward and backward
+
+
+    //drive forward and backward based on the D-Pad direction selected (chooses the front)
     public void driveForwardBackward (double power){
-        leftDrive.setPower(-power/1.5);
-        rightDrive.setPower(power/1.5);
-        frontDrive.setPower(0.0);
-        backDrive.setPower(0.0);
+
+        //the front is the front
+        if(driveOrient == 0){
+            leftDrive.setPower(-power/1.5);
+            rightDrive.setPower(power/1.5);
+            frontDrive.setPower(0.0);
+            backDrive.setPower(0.0);
+        }
+
+        //the right is the front
+        if(driveOrient == 1){
+            leftDrive.setPower(0.0);
+            rightDrive.setPower(0.0);
+            frontDrive.setPower(power/1.5);
+            backDrive.setPower(-power/1.5);
+        }
+
+        //the back is the front
+        if(driveOrient == 2){
+            leftDrive.setPower(power/1.5);
+            rightDrive.setPower(-power/1.5);
+            frontDrive.setPower(0.0);
+            backDrive.setPower(0.0);
+        }
+
+        //the left is the front
+        if(driveOrient == 3){
+            leftDrive.setPower(0.0);
+            rightDrive.setPower(0.0);
+            frontDrive.setPower(-power/1.5);
+            backDrive.setPower(power/1.5);
+        }
     }
 
-    //stop all motors
-    public void driveNotAtAll (){
-        leftDrive.setPower(0.0);
-        rightDrive.setPower(0.0);
-        frontDrive.setPower(0.0);
-        backDrive.setPower(0.0);
-    }
 
-    //drive left and right
+    //drive left and right based on the D-pad direction selected (chooses front of robot)
     public void driveRightLeft (double power) {
-        leftDrive.setPower(0.0);
-        rightDrive.setPower(0.0);
-        frontDrive.setPower(power/1.5);
-        backDrive.setPower(-power/1.5);
+
+        //the front is the front
+        if(driveOrient == 0){
+            leftDrive.setPower(0.0);
+            rightDrive.setPower(0.0);
+            frontDrive.setPower(power/1.5);
+            backDrive.setPower(-power/1.5);
+        }
+
+        //the right is the front
+        if(driveOrient == 1){
+            leftDrive.setPower(-power/1.5);
+            rightDrive.setPower(power/1.5);
+            frontDrive.setPower(0.0);
+            backDrive.setPower(0.0);
+        }
+
+        //the back is the front
+        if(driveOrient == 2){
+            leftDrive.setPower(0.0);
+            rightDrive.setPower(0.0);
+            frontDrive.setPower(-power/1.5);
+            backDrive.setPower(power/1.5);
+        }
+
+        //the left is the front
+        if(driveOrient == 3){
+            leftDrive.setPower(power/1.5);
+            rightDrive.setPower(-power/1.5);
+            frontDrive.setPower(0.0);
+            backDrive.setPower(0.0);
+        }
     }
 
     //rotate clockwise and counter clockwise
@@ -133,6 +194,14 @@ public class HardwareJenksTron3000
         rightDrive.setPower(power/4.0);
         frontDrive.setPower(power/4.0);
         backDrive.setPower(power/4.0);
+    }
+
+    //stop all motors
+    public void driveNotAtAll (){
+        leftDrive.setPower(0.0);
+        rightDrive.setPower(0.0);
+        frontDrive.setPower(0.0);
+        backDrive.setPower(0.0);
     }
 
 }
