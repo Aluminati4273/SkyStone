@@ -36,7 +36,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 
 @Autonomous(name="RangeTest", group="Auto")
-@Disabled
 
 
 public class RangeTest extends LinearOpMode {
@@ -58,19 +57,24 @@ public class RangeTest extends LinearOpMode {
         runtime.reset();
 
         robot.init(hardwareMap);
-        /*
-        while(opModeIsActive()){
-            if( robot.rangeSensor.getDistance(DistanceUnit.CM) < 45.0) {
-                robot.driveForwardBackward(0.25);
-            }
 
-            else{
-                robot.driveNotAtAll();
+        while(opModeIsActive()){
+            telemetry.addData("Distance: ", robot.rangeSensor.getDistance(DistanceUnit.CM));
+            while (robot.rangeSensor.getDistance(DistanceUnit.CM) < 45.0) {
+                telemetry.addData("Distance: ", robot.rangeSensor.getDistance(DistanceUnit.CM));
+                robot.driveRightLeft(0.4);
+            }
+            robot.driveNotAtAll();
+            if(robot.rangeSensor.getDistance(DistanceUnit.CM)  > 44.0 ){
+                runtime.reset();
+                if(getRuntime()< 5.0){
+                    robot.driveForwardBackward(0.4);
+                }
             }
 
         }
 
-        */
+
 
     }
 }

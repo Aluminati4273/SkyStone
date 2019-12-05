@@ -27,6 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -34,6 +35,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -50,29 +52,59 @@ public class HardwareJenksTron3000
     public DcMotor  rightDrive  = null;
     public DcMotor  frontDrive  = null;
     public DcMotor  backDrive   = null;
-    public Servo    foundation1  = null;
+    public DcMotor  liftMotor   = null;
+    public Servo    foundation1 = null;
     public Servo    foundation2 = null;
+    public Servo    direction   = null;
+    public Servo    clamp1    = null;
+    public Servo    clamp2    = null;
 
+    //values for FOUNDATION1 START AND GRAB
     public static final double FOUNDATION1_START =  0.95;
     public static final double FOUNDATION1_GRAB  =  0.20;
 
+    //values for FOUNDATION2 START AND GRAB
     public static final double FOUNDATION2_START =  0.20;
     public static final double FOUNDATION2_GRAB  =  0.95;
 
+    //values for CLAMP1 START and GRAB
+    public static final double  CLAMP1_START    =   0.95;
+    public static final double  CLAMP1_GRAB     =   0.20;
+
+    //values for CLAMP2 START and GRAB
+    public static final double  CLAMP2_START    =   0.20;
+    public static final double  CLAMP2_GRAB     =   0.95;
+
+
+    //values for direction servo
+    public static final double DRIVE_0 = 0.0;
+    public static final double DRIVE_1 = 0.33;
+    public static final double DRIVE_2 = 0.66;
+    public static final double DRIVE_3 = 0.99;
+
+
     public static int driveOrient = 0;
+
 
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
     private ElapsedTime period  = new ElapsedTime();
 
-
     // sensors
-    //ModernRoboticsI2cRangeSensor rangeSensor;
+    ModernRoboticsI2cRangeSensor rangeSensor;
+    IntegratingGyroscope gyro;
+    static ModernRoboticsI2cGyro modernRoboticsI2cGyro;
+
+    //gyroscope values
+
 
     /* Constructor */
     public HardwareJenksTron3000(){
 
     }
+
+    // A timer helps provide feedback while calibration is taking place
+    ElapsedTime timer = new ElapsedTime();
 
     /* Initialize standard Hardware interfaces */
     public void init(HardwareMap ahwMap) {
@@ -80,13 +112,19 @@ public class HardwareJenksTron3000
         hwMap = ahwMap;
 
         //sensor initialization
-        //rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "range_sensor");
+        rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "range_sensor");
+        modernRoboticsI2cGyro = hwMap.get(ModernRoboticsI2cGyro.class, "gyro");
+        gyro = hwMap.get(IntegratingGyroscope.class, "gyro");
 
-        // Define and Initialize Motors
+
+        // Define and Initialize Drive Motors
         leftDrive   = hwMap.get(DcMotor.class, "left_drive");
         rightDrive  = hwMap.get(DcMotor.class, "right_drive");
         frontDrive  = hwMap.get(DcMotor.class, "front_drive");
         backDrive   = hwMap.get(DcMotor.class, "back_drive");
+
+        //Define and Initialize Other Motors
+        liftMotor   = hwMap.get(DcMotor.class, "lift_motor");
 
         //Set motor directions
         leftDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -94,11 +132,17 @@ public class HardwareJenksTron3000
         frontDrive.setDirection(DcMotor.Direction.FORWARD);
         backDrive.setDirection(DcMotor.Direction.FORWARD);
 
+        //Set lift motor directions
+        liftMotor.setDirection(DcMotor.Direction.FORWARD);
+
         // Set all motors to zero power
         leftDrive.setPower(0);
         rightDrive.setPower(0);
         frontDrive.setPower(0);
         backDrive.setPower(0);
+
+        // set other motors to zero power
+        liftMotor.setPower(0);
 
         // Set all drive motors to run using encoders.
         leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -112,6 +156,14 @@ public class HardwareJenksTron3000
         foundation1.setPosition(FOUNDATION1_START);
         foundation2  = hwMap.get(Servo.class, "foundation2");
         foundation2.setPosition(FOUNDATION2_START);
+
+        clamp1 = hwMap.get(Servo.class, "clamp1");
+        clamp1.setPosition(CLAMP1_START);
+        clamp2 = hwMap.get(Servo.class, "clamp2");
+        clamp2.setPosition(CLAMP2_START);
+
+        direction = hwMap.get(Servo.class, "direction");
+        direction.setPosition(DRIVE_0);
     }
 
 
@@ -122,32 +174,33 @@ public class HardwareJenksTron3000
         if(driveOrient == 0){
             leftDrive.setPower(-power/1.5);
             rightDrive.setPower(power/1.5);
-            frontDrive.setPower(0.0);
-            backDrive.setPower(0.0);
+            //frontDrive.setPower(0.0);
+            //backDrive.setPower(0.0);
+
         }
 
         //the right is the front
         if(driveOrient == 1){
-            leftDrive.setPower(0.0);
-            rightDrive.setPower(0.0);
-            frontDrive.setPower(power/1.5);
-            backDrive.setPower(-power/1.5);
+            //leftDrive.setPower(0.0);
+            //rightDrive.setPower(0.0);
+            frontDrive.setPower(-power/1.5);
+            backDrive.setPower(power/1.5);
         }
 
         //the back is the front
         if(driveOrient == 2){
             leftDrive.setPower(power/1.5);
             rightDrive.setPower(-power/1.5);
-            frontDrive.setPower(0.0);
-            backDrive.setPower(0.0);
+            //frontDrive.setPower(0.0);
+            //backDrive.setPower(0.0);
         }
 
         //the left is the front
         if(driveOrient == 3){
-            leftDrive.setPower(0.0);
-            rightDrive.setPower(0.0);
-            frontDrive.setPower(-power/1.5);
-            backDrive.setPower(power/1.5);
+            //leftDrive.setPower(0.0);
+            //rightDrive.setPower(0.0);
+            frontDrive.setPower(power/1.5);
+            backDrive.setPower(-power/1.5);
         }
     }
 
@@ -157,24 +210,25 @@ public class HardwareJenksTron3000
 
         //the front is the front
         if(driveOrient == 0){
-            leftDrive.setPower(0.0);
-            rightDrive.setPower(0.0);
+            //leftDrive.setPower(0.0);
+            //rightDrive.setPower(0.0);
             frontDrive.setPower(power/1.5);
             backDrive.setPower(-power/1.5);
+
         }
 
         //the right is the front
         if(driveOrient == 1){
             leftDrive.setPower(-power/1.5);
             rightDrive.setPower(power/1.5);
-            frontDrive.setPower(0.0);
-            backDrive.setPower(0.0);
+            //frontDrive.setPower(0.0);
+            //backDrive.setPower(0.0);
         }
 
         //the back is the front
         if(driveOrient == 2){
-            leftDrive.setPower(0.0);
-            rightDrive.setPower(0.0);
+            //leftDrive.setPower(0.0);
+            //rightDrive.setPower(0.0);
             frontDrive.setPower(-power/1.5);
             backDrive.setPower(power/1.5);
         }
@@ -183,8 +237,8 @@ public class HardwareJenksTron3000
         if(driveOrient == 3){
             leftDrive.setPower(power/1.5);
             rightDrive.setPower(-power/1.5);
-            frontDrive.setPower(0.0);
-            backDrive.setPower(0.0);
+            //frontDrive.setPower(0.0);
+            //backDrive.setPower(0.0);
         }
     }
 
@@ -203,6 +257,7 @@ public class HardwareJenksTron3000
         frontDrive.setPower(0.0);
         backDrive.setPower(0.0);
     }
+
 
 }
 

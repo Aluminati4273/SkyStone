@@ -48,15 +48,19 @@ public class JenksTron_TeleOp extends OpMode {
 
         if(gamepad1.dpad_right){
             robot.driveOrient = 1;
+            robot.direction.setPosition(robot.DRIVE_1);
         }
-        else if(gamepad1.dpad_down){
+        if(gamepad1.dpad_down){
             robot.driveOrient = 2;
+            robot.direction.setPosition(robot.DRIVE_2);
         }
-        else if(gamepad1.dpad_left) {
+        if(gamepad1.dpad_left) {
             robot.driveOrient = 3;
+            robot.direction.setPosition(robot.DRIVE_3);
         }
-        else {
+        if(gamepad1.dpad_up) {
             robot.driveOrient = 0;
+            robot.direction.setPosition(robot.DRIVE_0);
         }
 
         // left stick to move forward and backward
@@ -101,6 +105,28 @@ public class JenksTron_TeleOp extends OpMode {
         if (gamepad1.left_bumper){
             robot.foundation1.setPosition(robot.FOUNDATION1_START);
             robot.foundation2.setPosition(robot.FOUNDATION2_START);
+        }
+
+
+        //lift motor
+        if(gamepad1.a){
+            robot.liftMotor.setPower(0.5);
+        }
+        else if (gamepad1.b){
+            robot.liftMotor.setPower(-0.5);
+        }
+        else {
+            robot.liftMotor.setPower(0.0);
+        }
+
+        //control the stone grabbers using the player 1 triggers
+        if(gamepad1.right_trigger > THRESHOLD){
+            robot.clamp1.setPosition(robot.CLAMP1_GRAB);
+            robot.clamp2.setPosition(robot.CLAMP2_GRAB);
+        }
+        if(gamepad1.left_trigger > THRESHOLD){
+            robot.clamp1.setPosition(robot.CLAMP1_START);
+            robot.clamp2.setPosition(robot.CLAMP2_START);
         }
 
 
